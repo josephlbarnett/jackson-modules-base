@@ -3,6 +3,7 @@ package com.fasterxml.jackson.module.guice;
 import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.OptBoolean;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Binder;
 import com.google.inject.Guice;
@@ -51,6 +52,7 @@ public class ExtendInjectableTest
                     binder.bind(MethodDependency.class).annotatedWith(Ann.class).toInstance(methodInjectedWithCustomAnnotation);
                     binder.bind(MethodDependency.class).annotatedWith(Names.named("guice")).toInstance(methodInjectedWithGuiceAnnotation);
                     binder.bind(MethodDependency.class).annotatedWith(Names.named("javax")).toInstance(methodInjectedWithJavaAnnotation);
+                    binder.bind(String.class).toInstance("injectedString");
                 }
         });
 
@@ -67,6 +69,14 @@ public class ExtendInjectableTest
         Assert.assertEquals("myField",       bean.fieldValue);
 
         verifyInjections("From Jackson's ObjectMapper", bean);
+
+        final DefaultStringInjectableBean defaultStringInjectableBean = mapper.readValue("{\"injectedString\":\"jsonProvidedString\"}", DefaultStringInjectableBean.class);
+        final UseIncludeTrueStringInjectableBean useIncludeTrueStringInjectableBean = mapper.readValue("{\"injectedString\":\"jsonProvidedString\"}", UseIncludeTrueStringInjectableBean.class);
+        final UseIncludeFalseStringInjectableBean useIncludeFalseStringInjectableBean = mapper.readValue("{\"injectedString\":\"jsonProvidedString\"}", UseIncludeFalseStringInjectableBean.class);
+
+        Assert.assertEquals("jsonProvidedString", defaultStringInjectableBean.injectedString);
+        Assert.assertEquals("jsonProvidedString", useIncludeTrueStringInjectableBean.injectedString);
+        Assert.assertEquals("injectedString", useIncludeFalseStringInjectableBean.injectedString);
 
     }
 
@@ -104,20 +114,75 @@ public class ExtendInjectableTest
                              @JacksonInject @javax.inject.Named("javax") ConstructorDependency constructorInjectedWithJavaAnnotation,
                              @JacksonInject @com.google.inject.name.Named("guice") ConstructorDependency constructorInjectedWithGuiceAnnotation,
                              @JacksonInject @Ann ConstructorDependency constructorInjectedWithCustomAnnotation,
-                             @JsonProperty("constructor_value") String constructorValue)
-        {
+                             @JsonProperty("constructor_value") String constructorValue) {
             super(constructorInjected,
-                  constructorInjectedWithJavaAnnotation,
-                  constructorInjectedWithGuiceAnnotation,
-                  constructorInjectedWithCustomAnnotation);
+                    constructorInjectedWithJavaAnnotation,
+                    constructorInjectedWithGuiceAnnotation,
+                    constructorInjectedWithCustomAnnotation);
             this.constructorValue = constructorValue;
         }
 
         @JsonProperty("method_value")
-        public void setMethodValue(String methodValue)
-        {
+        public void setMethodValue(String methodValue) {
             this.methodValue = methodValue;
         }
+    }
+
+    static class DefaultStringInjectableBean extends InjectableBean {
+        @JsonCreator
+        private DefaultStringInjectableBean(@JacksonInject ConstructorDependency constructorInjected,
+                             @JacksonInject @javax.inject.Named("javax") ConstructorDependency constructorInjectedWithJavaAnnotation,
+                             @JacksonInject @com.google.inject.name.Named("guice") ConstructorDependency constructorInjectedWithGuiceAnnotation,
+                             @JacksonInject @Ann ConstructorDependency constructorInjectedWithCustomAnnotation,
+                             @JacksonInject String injectedString) {
+            super(constructorInjected,
+                    constructorInjectedWithJavaAnnotation,
+                    constructorInjectedWithGuiceAnnotation,
+                    constructorInjectedWithCustomAnnotation);
+            this.injectedString = injectedString;
+        }
+
+        @JacksonInject
+        @JsonProperty
+        String injectedString;
+    }
+
+    static class UseIncludeTrueStringInjectableBean extends InjectableBean {
+        @JsonCreator
+        private UseIncludeTrueStringInjectableBean(@JacksonInject ConstructorDependency constructorInjected,
+                                            @JacksonInject @javax.inject.Named("javax") ConstructorDependency constructorInjectedWithJavaAnnotation,
+                                            @JacksonInject @com.google.inject.name.Named("guice") ConstructorDependency constructorInjectedWithGuiceAnnotation,
+                                            @JacksonInject @Ann ConstructorDependency constructorInjectedWithCustomAnnotation,
+                                            @JacksonInject(useInput = OptBoolean.TRUE) String injectedString) {
+            super(constructorInjected,
+                    constructorInjectedWithJavaAnnotation,
+                    constructorInjectedWithGuiceAnnotation,
+                    constructorInjectedWithCustomAnnotation);
+            this.injectedString = injectedString;
+        }
+
+        @JacksonInject(useInput = OptBoolean.TRUE)
+        @JsonProperty
+        String injectedString;
+    }
+
+    static class UseIncludeFalseStringInjectableBean extends InjectableBean {
+        @JsonCreator
+        private UseIncludeFalseStringInjectableBean(@JacksonInject ConstructorDependency constructorInjected,
+                                            @JacksonInject @javax.inject.Named("javax") ConstructorDependency constructorInjectedWithJavaAnnotation,
+                                            @JacksonInject @com.google.inject.name.Named("guice") ConstructorDependency constructorInjectedWithGuiceAnnotation,
+                                            @JacksonInject @Ann ConstructorDependency constructorInjectedWithCustomAnnotation,
+                                            @JacksonInject(useInput = OptBoolean.FALSE) String injectedString) {
+            super(constructorInjected,
+                    constructorInjectedWithJavaAnnotation,
+                    constructorInjectedWithGuiceAnnotation,
+                    constructorInjectedWithCustomAnnotation);
+            this.injectedString = injectedString;
+        }
+
+        @JacksonInject(useInput = OptBoolean.FALSE)
+        @JsonProperty
+        String injectedString;
 
     }
 

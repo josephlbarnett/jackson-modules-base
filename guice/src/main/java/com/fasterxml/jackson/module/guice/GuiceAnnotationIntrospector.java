@@ -19,7 +19,12 @@ public class GuiceAnnotationIntrospector extends NopAnnotationIntrospector
         if (id == null) {
             return null;
         }
-        return JacksonInject.Value.forId(id);
+        JacksonInject jiAnnotation = m.getAnnotation(JacksonInject.class);
+        if (jiAnnotation != null) {
+            return JacksonInject.Value.construct(id, jiAnnotation.useInput().asBoolean());
+        } else {
+            return JacksonInject.Value.forId(id);
+        }
     }
 
     @Deprecated // since 2.9
